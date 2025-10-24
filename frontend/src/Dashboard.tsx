@@ -8,7 +8,7 @@ export default function Dashboard() {
   useEffect(() => {
     const start = async () => {
       const connection = new signalR.HubConnectionBuilder()
-        .withUrl("http://backend:8080/lineshub")
+        .withUrl(`${import.meta.env.VITE_API_BASE_URL}/lineshub`)
         .withAutomaticReconnect()
         .configureLogging(signalR.LogLevel.Information)
         .build();
@@ -16,9 +16,16 @@ export default function Dashboard() {
       connectionRef.current = connection;
 
       connection.on("ReceiveUpdate", (message: string) => {
-        const [linea, cantidad] = message.split(":");
-        setData((prev) => [...prev, { linea, cantidad: Number(cantidad) }]);
-      });
+      try {
+        const parsed = JSON.parse(message);
+        setData((prev) => [
+          ...prev,
+          { linea: parsed.LineId.toString(), cantidad: parsed.ProductionCount }
+        ]);
+      } catch (e) {
+        console.error("Error parsing message:", message, e);
+      }
+    });
 
       try {
         await connection.start();
